@@ -1,0 +1,23 @@
+{# Macro de Jinja2 para renderizar campos de WTForms con clases de Bootstrap #}
+{% macro render_field(field, class='', type=None, placeholder=None, rows=None, id=None) %}
+    <div class="mb-3">
+        {{ field.label(class="form-label") }}
+        
+        {# Añadir 'is-invalid' si hay errores #}
+        {% if field.errors %}
+            {% set class = class + ' is-invalid' %}
+        {% endif %}
+        
+        {# Renderizar el campo pasando los atributos directamente.
+           Jinja/WTForms ignorará los atributos que sean 'None'. #}
+        {{ field(class=class, type=type, placeholder=placeholder, rows=rows, id=id) }}
+        
+        {% if field.errors %}
+            {% for error in field.errors %}
+                <div class="invalid-feedback d-block">
+                    {{ error }}
+                </div>
+            {% endfor %}
+        {% endif %}
+    </div>
+{% endmacro %}
