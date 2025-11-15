@@ -12,21 +12,34 @@ def generate_reservation_code():
     return f"L{new_id:06d}"
 
 
-def get_all_reservations(estado=None):
-    query = Reservation.query
+def get_all_reservations(estado=None, sede_id=None):
+    """
+    Obtiene todas las reservas, filtradas por estado y/o SEDE.
+    """
+    query = db.select(Reservation)
     if estado:
-        query = query.filter(Reservation.estado == estado)
-    return query.order_by(Reservation.fecha_celebracion.desc()).all()
+        query = query.where(Reservation.estado == estado)
+    if sede_id:
+        query = query.where(Reservation.sede_id == sede_id)  # <-- FILTRO AÑADIDO
+
+    query = query.order_by(Reservation.created_at.desc())
+    return db.session.scalars(query).all()
 
 
-def get_reservations_by_date_range(start_date, end_date):
-    start_datetime = datetime.combine(start_date, datetime.min.time())
-    end_datetime = datetime.combine(end_date, datetime.max.time())
-    query = Reservation.query.filter(
-        Reservation.fecha_celebracion >= start_datetime,
-        Reservation.fecha_celebracion <= end_datetime,
+def get_reservations_by_date_range(fecha_desde, fecha_hasta, sede_id):
+    """
+    Obtiene reservas en un rango de fechas PARA UNA SEDE ESPECÍFICA.
+    """
+    query = (
+        db.select(Reservation)
+        .where(
+            Reservation.sede_id == sede_id,  # <-- FILTRO AÑADIDO
+            Reservation.fecha_celebracion >= fecha_desde,
+            Reservation.fecha_celebracion <= fecha_hasta,
+        )
+        .order_by(Reservation.fecha_celebracion.asc())
     )
-    return query.order_by(Reservation.fecha_celebracion.desc()).all()
+    return db.session.scalars(query).all()
 
 
 def create_reservation(form_data, user_id):
@@ -57,11 +70,21 @@ def create_reservation(form_data, user_id):
 # --- Servicios de Abonos ---
 
 
-def get_payments_by_date_range(start_date, end_date):
-    query = Payment.query.filter(
-        Payment.fecha_abono >= start_date, Payment.fecha_abono <= end_date
+def get_payments_by_date_range(fecha_desde, fecha_hasta, sede_id):
+    """
+    Obtiene abonos en un rango de fechas PARA UNA SEDE ESPECÍFICA.
+    """
+    query = (
+        db.select(Payment)
+        .join(Reservation)  # Unimos con Reservation para filtrar por Sede
+        .where(
+            Reservation.sede_id == sede_id,  # <-- FILTRO AÑADIDO
+            Payment.fecha_abono >= fecha_desde,
+            Payment.fecha_abono <= fecha_hasta,
+        )
+        .order_by(Payment.fecha_abono.asc())
     )
-    return query.order_by(Payment.fecha_abono.desc()).all()
+    return db.session.scalars(query).all()
 
 
 def create_payment(form_data, user_id):
@@ -94,3 +117,31 @@ def create_payment(form_data, user_id):
     db.session.add(reservation)
     db.session.commit()
     return new_payment
+
+
+def get_next_reservation_code(sede_id, prefijo):
+    """
+    Calcula el siguiente código de reserva para una SEDE específica.
+    Formato: [PREFIJO]00001 (ej: TR00001, CH00002)
+    """
+
+    # 1. Buscar la última reserva (por ID) DE ESA SEDE
+    last_reservation = db.session.scalar(
+        db.select(Reservation)
+        .where(Reservation.sede_id == sede_id)  # <-- FILTRO POR SEDE
+        .order_by(Reservation.id.desc())
+    )
+
+    if not last_reservation:
+        next_number = 1
+    else:
+        try:
+            # 2. Extraer el número del código (ej: "TR00001" -> "00001")
+            prefix_length = len(prefijo)
+            number_part = last_reservation.codigo_reserva[prefix_length:]
+            next_number = int(number_part) + 1
+        except (ValueError, TypeError):
+            next_number = 1
+
+    # 3. Rellenar con 5 ceros (ej: 1 -> "00001", 43 -> "00043")
+    return f"{prefijo.upper()}{str(next_number).zfill(5)}"

@@ -7,6 +7,8 @@ from flask_wtf import FlaskForm
 from wtforms import (
     DateField,
     DecimalField,
+    HiddenField,
+    IntegerField,
     RadioField,
     SelectField,
     StringField,
@@ -20,6 +22,7 @@ from wtforms.validators import (
     Length,
     NumberRange,
     Optional,
+    Regexp,
     ValidationError,
 )
 
@@ -50,11 +53,47 @@ class ReservationForm(FlaskForm):
         choices=[
             ("Exclusivo", "Exclusivo"),
             ("Paquete LUDI", "Paquete LUDI"),
-            ("NUEVO Paquete LUDI", "NUEVO Paquete LUDI"),
             ("Paquete JESSI", "Paquete JESSI"),
             ("Paquete LUDI SUPER ESTRELLA", "Paquete LUDI SUPER ESTRELLA"),
         ],
         validators=[DataRequired(message="Debe seleccionar una modalidad.")],
+    )
+
+    salon = RadioField(
+        "Salón",
+        choices=[("Salón 1", "Salón 1"), ("Salón 2", "Salón 2")],
+        validators=[Optional()],  # Opcional, porque no siempre es visible
+    )
+
+    horario = SelectField(
+        "Horario",
+        choices=[],  # Vacío, se llenará con JavaScript
+        validators=[Optional()],
+    )
+
+    paquete = SelectField(
+        "Paquete",
+        choices=[],  # Vacío, se llenará con JavaScript
+        validators=[Optional()],
+    )
+
+    ninos = IntegerField(
+        "Niños *",
+        # Dejamos el 'min=0' aquí; el JS pondrá el mínimo real
+        validators=[
+            DataRequired(message="Debe indicar el N° de niños."),
+            NumberRange(min=0),
+        ],
+        default=0,
+    )
+
+    adultos = IntegerField(
+        "Adultos *",
+        validators=[
+            DataRequired(message="Debe indicar el N° de adultos."),
+            NumberRange(min=0),
+        ],
+        default=0,
     )
 
     estado = SelectField(
@@ -69,9 +108,16 @@ class ReservationForm(FlaskForm):
 
     # Campos adicionales del CSV y Mockup
     accesorios = TextAreaField("Accesorios:", validators=[Optional()])
+
+    # === AÑADIR ESTE CAMPO ===
+    # Usará la columna 'adicionales' de tu modelo para guardar el JSON
+    adicionales = HiddenField("Adicionales")
+
     comentarios = TextAreaField("Comentarios:", validators=[Optional()])
     total = DecimalField(
-        "Monto Total (TOTAL):", validators=[Optional(), NumberRange(min=0)]
+        "Monto Total (TOTAL):",
+        validators=[Optional(), NumberRange(min=0)],
+        render_kw={"readonly": True},
     )
 
     # Botón de envío del modal
@@ -128,3 +174,34 @@ class PaymentForm(FlaskForm):
     comentarios = TextAreaField("Comentarios:", validators=[Optional()])
 
     submit = SubmitField("Abonar")
+
+
+class AdicionalForm(FlaskForm):
+    """Formulario para crear y editar Adicionales en el panel de admin."""
+
+    nombre = StringField(
+        "Nombre del Adicional", validators=[DataRequired(), Length(min=3, max=100)]
+    )
+    precio = DecimalField(
+        "Precio (S/.)",
+        validators=[DataRequired(message="El precio es requerido.")],
+        places=2,  # Para aceptar 2 decimales
+    )
+    submit = SubmitField("Guardar")
+
+
+class SedeForm(FlaskForm):
+    """Formulario para crear y editar Sedes."""
+
+    nombre = StringField(
+        "Nombre de la Sede", validators=[DataRequired(), Length(min=3, max=100)]
+    )
+    prefijo = StringField(
+        "Prefijo (2 o 3 letras)",
+        validators=[
+            DataRequired(),
+            Length(min=2, max=3, message="El prefijo debe tener 2 o 3 letras."),
+            Regexp("^[A-Z]+$", message="Solo letras mayúsculas."),
+        ],
+    )
+    submit = SubmitField("Guardar Sede")

@@ -1,7 +1,7 @@
 import os
 
 from app import create_app, db
-from app.models import User
+from app.models import Sede, User
 
 # Crear la aplicación Flask usando la factory
 app = create_app()
@@ -22,10 +22,17 @@ def setup_database(app_context):
         # Esto creará las tablas en tu DB 'ludicus_db'
         db.create_all()
 
+        # --- CREAR SEDE POR DEFECTO ---
+        default_sede = Sede.query.filter_by(prefijo="TR").first()
+        if not default_sede:
+            print("Creando sede por defecto 'Trujillo' (TR)...")
+            default_sede = Sede(nombre="Trujillo", prefijo="TR")
+            db.session.add(default_sede)
+
         # Crear usuario 'ludireserva' del mockup de login
         if not User.query.filter_by(username="ludireserva").first():
             print("Creando usuario admin 'ludireserva'...")
-            admin_user = User(username="ludireserva")
+            admin_user = User(username="ludireserva", sede=default_sede)
             admin_user.set_password("admin123")  # ¡Esta será tu contraseña para entrar!
             db.session.add(admin_user)
             db.session.commit()

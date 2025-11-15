@@ -3,11 +3,26 @@ from datetime import datetime
 from flask_login import UserMixin
 from werkzeug.security import check_password_hash, generate_password_hash
 
-from app import db, login_manager
+from app import db
+
+# --- MODELO DE SEDE ---
+
+
+class Sede(db.Model):
+    __tablename__ = "sede"
+    id = db.Column(db.Integer, primary_key=True)
+    nombre = db.Column(db.String(100), unique=True, nullable=False)  # ej: "Trujillo"
+    prefijo = db.Column(db.String(3), unique=True, nullable=False)  # ej: "TR"
+
+    # Conexiones
+    users = db.relationship("User", back_populates="sede", lazy="dynamic")
+    reservations = db.relationship("Reservation", back_populates="sede", lazy="dynamic")
+
+    def __repr__(self):
+        return f"<Sede {self.nombre}>"
+
 
 # --- Modelo de Autenticación ---
-
-
 class User(UserMixin, db.Model):
     """Modelo para los colaboradores (Propietario)."""
 
@@ -16,6 +31,10 @@ class User(UserMixin, db.Model):
     username = db.Column(db.String(80), index=True, unique=True, nullable=False)
     password_hash = db.Column(db.String(256), nullable=False)
     is_active = db.Column(db.Boolean, default=True)
+    sede_id = db.Column(
+        db.Integer, db.ForeignKey("sede.id"), nullable=True
+    )  # Nullable=True para super-admins
+    sede = db.relationship("Sede", back_populates="users")
 
     reservations = db.relationship(
         "Reservation", back_populates="propietario", lazy="dynamic"
@@ -29,12 +48,11 @@ class User(UserMixin, db.Model):
         return check_password_hash(self.password_hash, password)
 
 
-@login_manager.user_loader
 def load_user(user_id):
     return db.session.get(User, int(user_id))
 
 
-# --- Modelos de Negocio (Basados en tus CSV) ---
+# --- Modelos de Negocio ---
 
 
 class Reservation(db.Model):
@@ -51,6 +69,11 @@ class Reservation(db.Model):
     )  # Reemplaza 'Actualización'
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"))  # Reemplaza 'Propietario'
     propietario = db.relationship("User", back_populates="reservations")
+
+    sede_id = db.Column(
+        db.Integer, db.ForeignKey("sede.id"), nullable=False, index=True
+    )
+    sede = db.relationship("Sede", back_populates="reservations")
 
     # Campos de tu CSV (mapeados)
     codigo_reserva = db.Column(db.String(20), unique=True, nullable=False, index=True)
@@ -112,3 +135,18 @@ class Payment(db.Model):
     referencia = db.Column(db.String(100))  # 'Referencia' (Nro. Operación del mockup)
     modalidad = db.Column(db.String(100))
     comentarios = db.Column(db.Text)
+
+
+class Adicional(db.Model):
+    """Modelo para los Adicionales (extras) de las reservas."""
+
+    __tablename__ = "adicionales"
+
+    id = db.Column(db.Integer, primary_key=True)
+    nombre = db.Column(db.String(100), unique=True, nullable=False)
+    precio = db.Column(
+        db.Numeric(10, 2), nullable=False
+    )  # Numeric es ideal para dinero
+
+    def __repr__(self):
+        return f"<Adicional {self.nombre} | S/ {self.precio}>"

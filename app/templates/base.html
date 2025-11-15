@@ -2,80 +2,67 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <!-- === LA LÍNEA QUE FALTABA === -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}{{ title }}{% endblock %} - Lúdicus Park</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
-<!-- El body ahora reacciona al estado del sidebar -->
 <body>
     {% from "_formhelpers.html" import render_field %}
 
-    <!-- === Contenedor General de la Página === -->
     <div class="page-wrapper">
 
-        <!-- === 1. Encabezado (Header Banner) === -->
         <header class="header-banner">
             
-            <!-- === Botón de Hamburguesa === -->
             <button class="sidebar-toggle" id="sidebarToggleBtn" aria-label="Abrir menú">
                 <i class="bi bi-list"></i>
             </button>
 
-            <!-- Imagen Izquierda (Conejo) -->
             <img src="{{ url_for('static', filename='images/conejo.png') }}"
                  alt="Mascota" 
                  class="header-image left">
             
-            <!-- Título Central -->
             <h1 class="header-title">LÚDICUS PARK</h1>
             
-            <!-- Imagen Derecha (Logo) -->
             <img src="{{ url_for('static', filename='images/logo.png') }}"
                  alt="Logo Lúdicus Park" 
                  class="header-image right">
 
         </header>
 
-        <!-- === 2. Contenedor Principal === -->
         <div class="main-layout-wrapper">
 
-            <!-- === 3. Barra Lateral (Sidebar) === -->
             <aside class="sidebar" id="sidebar">
-                <!-- (Logo removido de aquí) -->
-                <hr class="sidebar-logo-divider" style="display: none;"> <!-- Separador oculto -->
-
                 <ul class="nav nav-pills flex-column mb-auto">
                     <li class="nav-item">
                         <a href="{{ url_for('main.index') }}" class="nav-link {% if request.endpoint == 'main.index' %}active{% endif %}">
-                            <i class="bi bi-house-door me-2"></i>
-                            Inicio
+                            <i class="bi bi-house-door me-2"></i> Inicio
                         </a>
                     </li>
                     <li class="nav-item">
                         <a href="{{ url_for('main.reservas') }}" class="nav-link {% if request.endpoint == 'main.reservas' %}active{% endif %}">
-                            <i class="bi bi-calendar-check me-2"></i>
-                            Reservas
+                            <i class="bi bi-calendar-check me-2"></i> Reservas
                         </a>
                     </li>
                     <li class="nav-item">
                         <a href="{{ url_for('main.abonos') }}" class="nav-link {% if request.endpoint == 'main.abonos' %}active{% endif %}">
-                            <i class="bi bi-cash-coin me-2"></i>
-                            Abonos
+                            <i class="bi bi-cash-coin me-2"></i> Abonos
                         </a>
                     </li>
-                    <!-- Enlaces deshabilitados -->
                     <li class="nav-item">
                         <a href="#" class="nav-link disabled" tabindex="-1" aria-disabled="true">Reportes</a>
                     </li>
+
+                    <hr>
                     <li class="nav-item">
-                        <a href="#" class="nav-link disabled" tabindex="-1" aria-disabled="true">Usuarios</a>
+                        <a href="{{ url_for('main.admin_adicionales') }}" 
+                           class="nav-link {% if 'admin' in request.endpoint %}active{% endif %}">
+                            <i class="bi bi-gear-wide-connected me-2"></i> Administrar
+                        </a>
                     </li>
                 </ul>
 
-                <!-- Menú de Usuario al fondo -->
                 <hr>
                 <div class="dropdown">
                     <a href="#" class="d-flex align-items-center text-white text-decoration-none dropdown-toggle" id="dropdownUser" data-bs-toggle="dropdown" aria-expanded="false">
@@ -88,45 +75,28 @@
                 </div>
             </aside>
 
-            <!-- === 4. Área de Contenido Principal === -->
             <main class="main-content" id="main-content">
                 
-                <!-- === CAMBIO: Overlay (Fondo oscuro) MOVIDO AQUÍ DENTRO === -->
                 <div class="overlay" id="overlay"></div>
 
-                <!-- Mensajes Flash (Alertas) -->
                 {% with messages = get_flashed_messages(with_categories=true) %}
-                    {% if messages %}
-                    <div class="container-fluid px-0">
-                        {% for category, message in messages %}
-                        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-                            {{ message }}
-                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                        </div>
-                        {% endfor %}
+                {% if messages %}
+                <div class="container-fluid px-0">
+                    {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                     </div>
-                    {% endif %}
+                    {% endfor %}
+                </div>
+                {% endif %}
                 {% endwith %}
 
-                <!-- Contenido Específico de la Página -->
                 {% block content %}{% endblock %}
             </main>
             
-        </div> <!-- Fin de .main-layout-wrapper -->
-
-    </div> <!-- === FIN del .page-wrapper === -->
-
-    <!--
-      ==================================================================
-      MODALES
-      Están en la ubicación correcta (hijos del body)
-      ==================================================================
-    -->
-    
-    <!-- === Modal de Nueva Reserva (Desde reservas.html) === -->
-    {% if reserva_form %}
+        </div> </div> {% if reserva_form %}
     <div class="modal fade" id="modalNuevaReserva" tabindex="-1" aria-labelledby="modalNuevaReservaLabel" aria-hidden="true">
-        <!-- Eliminada la clase 'modal-dialog-scrollable' -->
         <div class="modal-dialog modal-xl">
             <div class="modal-content">
                 <form action="{{ url_for('api.nueva_reserva') }}" method="POST" id="form-nueva-reserva" novalidate>
@@ -137,6 +107,7 @@
                     </div>
                     <div class="modal-body">
                         <div class="row g-3">
+                            
                             <div class="col-md-6">
                                 <h6 class="text-muted">Datos del Cliente y Celebración</h6>
                                 <hr class="mt-0">
@@ -150,29 +121,125 @@
                                     <div class="col-sm-6">{{ render_field(reserva_form.nombre_cumpleanero, class="form-control") }}</div>
                                 </div>
                                 {{ render_field(reserva_form.fecha_celebracion, class="form-control", type="date") }}
-                                <div class="mb-3">
-                                    {{ reserva_form.modalidad.label(class="form-label") }}
-                                    {% for subfield in reserva_form.modalidad %}
-                                    <div class="form-check">
-                                        {{ subfield(class="form-check-input") }}
-                                        {{ subfield.label(class="form-check-label") }}
+
+                                <div class="row">
+                                    <div class="col-sm-6">
+                                        <div class="mb-3">
+                                            {{ reserva_form.modalidad.label(class="form-label") }}
+                                            <div id="modalidad-group"> 
+                                                {% for subfield in reserva_form.modalidad %}
+                                                <div class="form-check">
+                                                    {{ subfield(class="form-check-input") }}
+                                                    {{ subfield.label(class="form-check-label") }}
+                                                </div>
+                                                {% endfor %}
+                                            </div>
+                                        </div>
                                     </div>
-                                    {% endfor %}
+                                    <div class="col-sm-6">
+                                        <div id="salon-column-container" class="mb-3" style="display: none;">
+                                            {{ reserva_form.salon.label(class="form-label") }}
+                                            {% for subfield in reserva_form.salon %}
+                                            <div class="form-check">
+                                                {{ subfield(class="form-check-input") }}
+                                                {{ subfield.label(class="form-check-label") }}
+                                            </div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                </div> 
+                                <div class="row">
+                                    <div class="col-sm-6">
+                                        <div class="mb-3">
+                                            {{ reserva_form.ninos.label(class="form-label") }}
+                                            {{ reserva_form.ninos(id="input_ninos", class="form-control", type="number") }}
+                                        </div>
+                                    </div>
+                                    <div class="col-sm-6">
+                                        <div class="mb-3">
+                                            {{ reserva_form.adultos.label(class="form-label") }}
+                                            {{ reserva_form.adultos(id="input_adultos", class="form-control", type="number") }}
+                                        </div>
+                                    </div>
                                 </div>
+
+                                <div id="horario-group" class="mb-3" style="display: none;">
+                                    {{ reserva_form.horario.label(class="form-label") }}
+                                    
+                                    {{ reserva_form.horario(id="horario", class="form-select") }}
+                                </div>
+
+                                <div id="paquete-group" class="mb-3" style="display: none;">
+                                    {{ reserva_form.paquete.label(class="form-label") }}
+                                    
+                                    {{ reserva_form.paquete(id="paquete", class="form-select") }}
+                                </div>
+                                
                                 {{ render_field(reserva_form.estado, class="form-select") }}
                             </div>
+
                             <div class="col-md-6">
                                 <h6 class="text-muted">Adicionales y Comentarios</h6>
                                 <hr class="mt-0">
-                                {{ render_field(reserva_form.total, class="form-control", placeholder="0.00") }}
+
+                                <div class="row g-2 mb-3 align-items-end">
+                                    <div class="col-sm-7">
+                                        <label for="select-adicional" class="form-label">Adicionales</label>
+                                        <select id="select-adicional" class="form-select">
+                                            <option value="" data-precio="0" selected>-- Seleccionar --</option>
+                                            
+                                            {% if lista_adicionales %}
+                                                {% for item in lista_adicionales %}
+                                                    <option value="{{ item.id }}" 
+                                                            data-nombre="{{ item.nombre }}" 
+                                                            data-precio="{{ item.precio }}">
+                                                        {{ item.nombre }} (S/ {{ "%.2f"|format(item.precio) }})
+                                                    </option>
+                                                {% endfor %}
+                                            {% endif %}
+                                        </select>
+                                    </div>
+                                    <div class="col-sm-3">
+                                        <label for="input-cantidad" class="form-label">Cantidad</label>
+                                        <input type="number" id="input-cantidad" class="form-control" value="1" min="1">
+                                    </div>
+                                    <div class="col-sm-2">
+                                        <button type="button" id="btn-agregar-adicional" class="btn btn-success w-100 py-2">
+                                            <i class="bi bi-plus-lg"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="table-responsive mb-3" style="max-height: 200px; overflow-y: auto;">
+                                    <table class="table table-sm table-striped caption-top">
+                                        <caption>Adicionales agregados:</caption>
+                                        <thead class="table-dark-custom sticky-top">
+                                            <tr>
+                                                <th>Nombre</th>
+                                                <th>Cant.</th>
+                                                <th>Subtotal</th>
+                                                <th></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="tbody-adicionales">
+                                            </tbody>
+                                    </table>
+                                </div>
+                                
+                                {{ reserva_form.adicionales(id="adicionales_hidden_field") }}
+                                
                                 {{ render_field(reserva_form.accesorios, class="form-control", rows=3) }}
                                 {{ render_field(reserva_form.comentarios, class="form-control", rows=4) }}
                             </div>
                         </div>
                     </div>
                     <div class="modal-footer justify-content-between">
-                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
-                        {{ reserva_form.submit(class="btn btn-primary-custom btn-lg") }}
+                        <div class="d-flex align-items-center">
+                            <strong class="fs-5 me-2">TOTAL:</strong>
+                            {{ reserva_form.total(id="campo_total_reserva", class="form-control form-control-lg text-success fs-4 fw-bold") }}
+                        </div>
+                            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                            {{ reserva_form.submit(class="btn btn-primary-custom btn-lg") }}
+                        </div>
                     </div>
                 </form>
             </div>
@@ -180,10 +247,8 @@
     </div>
     {% endif %}
 
-    <!-- === Modal de Nuevo Abono (Desde abonos.html) === -->
     {% if payment_form %}
     <div class="modal fade" id="modalNuevoAbono" tabindex="-1" aria-labelledby="modalNuevoAbonoLabel" aria-hidden="true">
-        <!-- Eliminada la clase 'modal-dialog-scrollable' -->
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <form action="{{ url_for('api.nuevo_abono') }}" method="POST" id="form-nuevo-abono" novalidate>
@@ -203,10 +268,10 @@
                                 {{ render_field(payment_form.modalidad, class="form-control", placeholder="Se autocompleta") }}
                             </div>
                             <div class="col-12">
-                                 {{ render_field(payment_form.referencia, class="form-control", placeholder="Ej: Yape 12345678") }}
+                                {{ render_field(payment_form.referencia, class="form-control", placeholder="Ej: Yape 12345678") }}
                             </div>
                             <div class="col-12">
-                                 {{ render_field(payment_form.comentarios, class="form-control", rows=3) }}
+                                {{ render_field(payment_form.comentarios, class="form-control", rows=3) }}
                             </div>
                         </div>
                     </div>
@@ -220,16 +285,20 @@
     </div>
     {% endif %}
 
-    <!-- TU SCRIPT DE SOLUCIÓN -->
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
     <script>
     document.addEventListener('DOMContentLoaded', function() {
         const allModals = document.querySelectorAll('.modal');
 
         allModals.forEach(modal => {
             modal.addEventListener('shown.bs.modal', function (event) {
-                document.body.style.overflow = 'auto';
+                // Anula el 'overflow: hidden' que Bootstrap añade al <body>
+                document.body.style.overflow = 'auto'; 
             });
             modal.addEventListener('hidden.bs.modal', function (event) {
+                // Restaura el 'overflow: hidden' si el sidebar móvil está abierto
                 if (document.body.classList.contains('sidebar-open')) {
                     document.body.style.overflow = 'hidden';
                 } else {
@@ -239,12 +308,10 @@
         });
     });
     </script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    
     {% block scripts %}
     {% endblock %}
 </body>
 </html>
-
-

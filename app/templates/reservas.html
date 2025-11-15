@@ -82,3 +82,6 @@
 
 {% endblock %}
 
+{% block scripts %}
+    {{ super() }} <script src="{{ url_for('static', filename='js/reservas.js') }}"></script>
+{% endblock %}
