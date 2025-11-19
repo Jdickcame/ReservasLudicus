@@ -36,6 +36,8 @@ class User(UserMixin, db.Model):
     )  # Nullable=True para super-admins
     sede = db.relationship("Sede", back_populates="users")
 
+    is_admin = db.Column(db.Boolean, default=False)
+
     reservations = db.relationship(
         "Reservation", back_populates="propietario", lazy="dynamic"
     )

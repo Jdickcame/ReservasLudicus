@@ -28,8 +28,9 @@ from wtforms.validators import (
 
 
 class ReservationForm(FlaskForm):
-    """Formulario para el modal de Nueva Reserva (CSV + mockup image_3e5282.png)."""
+    """Formulario para el modal de Nueva Reserva."""
 
+    sede_seleccionada = HiddenField("Sede", validators=[Optional()])
     # Mapeados de CSV y Mockup
     nombre_padres = StringField(
         "Nombre y Apellidos (Padres):", validators=[DataRequired()]
@@ -69,12 +70,14 @@ class ReservationForm(FlaskForm):
         "Horario",
         choices=[],  # Vacío, se llenará con JavaScript
         validators=[Optional()],
+        validate_choice=False,
     )
 
     paquete = SelectField(
         "Paquete",
         choices=[],  # Vacío, se llenará con JavaScript
         validators=[Optional()],
+        validate_choice=False,
     )
 
     ninos = IntegerField(

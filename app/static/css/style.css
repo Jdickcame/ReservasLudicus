@@ -220,6 +220,19 @@ body.sidebar-open .overlay {
     border-color: var(--brand-pink);
 }
 
+.reservation-code-display {
+    font-family: 'Bango Pro', sans-serif; /* Usa tu fuente personalizada */
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: var(--brand-blue-dark); /* Color de tu tabla */
+    
+    background-color: #f4f7f6; /* Un fondo gris claro */
+    padding: 0.375rem 0.75rem;
+    border-radius: 0.375rem;
+    border: 1px solid #dee2e6; /* Borde sutil */
+    letter-spacing: 2px; /* Espaciado de letras */
+}
+
 
 /* === 5. Responsive Design (Media Queries) === */
 
