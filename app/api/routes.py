@@ -213,6 +213,12 @@ def obtener_detalle_reserva(id):
         else "-"
     )
 
+    # === CÁLCULO DE SALDOS ===
+    # Sumamos todos los pagos asociados a esta reserva
+    total_abonado = sum(p.monto for p in reserva.payments)
+    saldo_pendiente = reserva.total - total_abonado
+    # =========================
+
     return jsonify(
         {
             "codigo": reserva.codigo_reserva,
@@ -223,6 +229,9 @@ def obtener_detalle_reserva(id):
             "correo": reserva.correo or "-",
             "nombre_cumpleanero": reserva.nombre_cumpleanero or "-",
             "fecha": fecha_fmt,
+            "created_at": reserva.created_at.strftime(
+                "%d de %B de %Y"
+            ),  # Fecha de creación para el contrato
             "horario": reserva.horario or "-",
             "salon": reserva.salon or "-",
             "modalidad": reserva.modalidad,
@@ -230,6 +239,9 @@ def obtener_detalle_reserva(id):
             "ninos": reserva.ninos,
             "adultos": reserva.adultos,
             "total": float(reserva.total),
+            # Nuevos campos calculados
+            "a_cuenta": float(total_abonado),
+            "saldo": float(saldo_pendiente),
             "accesorios": reserva.accesorios or "Ninguno",
             "comentarios": reserva.comentarios or "Ninguno",
             "adicionales": lista_adicionales,

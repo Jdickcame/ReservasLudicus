@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% from "_formhelpers.html" import render_field %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row justify-content-center">
+        <div class="col-lg-6">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-white py-3">
+                    <h4 class="mb-0 text-dark">{{ title }}</h4>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="" novalidate>
+                        {{ form.hidden_tag() }}
+                        
+                        <div class="mb-3">
+                            {{ render_field(form.nombre, class="form-control", placeholder="Ej: Trujillo") }}
+                        </div>
+                        
+                        <div class="mb-3">
+                            {{ render_field(form.prefijo, class="form-control", placeholder="Ej: TR (Máx 3 letras)") }}
+                            <div class="form-text">Este prefijo se usará para generar los códigos de reserva (ej: <strong>TR</strong>00001).</div>
+                        </div>
+
+                        <hr>
+                        
+                        <div class="d-flex justify-content-between align-items-center">
+                            <a href="{{ url_for('main.admin_sedes') }}" class="btn btn-outline-secondary">
+                                Cancelar
+                            </a>
+                            {{ form.submit(class="btn btn-primary-custom btn-lg") }}
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

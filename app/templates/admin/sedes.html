@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="card shadow-sm border-0">
+        <div class="card-header bg-white py-3">
+            <div class="d-flex justify-content-between align-items-center">
+                <h4 class="mb-0 text-dark">Panel de Sedes</h4>
+                <a href="{{ url_for('main.nueva_sede') }}" class="btn btn-primary-custom">
+                    <i class="bi bi-plus-circle me-1"></i> Nueva Sede
+                </a>
+            </div>
+        </div>
+        
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover align-middle">
+                    <thead class="table-dark-custom">
+                        <tr>
+                            <th>ID</th>
+                            <th>Nombre</th>
+                            <th>Prefijo (Código)</th>
+                            <th class="text-end">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for sede in sedes %}
+                        <tr>
+                            <td>{{ sede.id }}</td>
+                            <td><strong>{{ sede.nombre }}</strong></td>
+                            <td><span class="badge bg-info text-dark">{{ sede.prefijo }}</span></td>
+                            <td class="text-end">
+                                <a href="{{ url_for('main.editar_sede', id=sede.id) }}" 
+                                   class="btn btn-sm btn-outline-warning me-1" 
+                                   title="Editar">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+
+                                <form action="{{ url_for('main.eliminar_sede', id=sede.id) }}" 
+                                      method="POST" class="d-inline"
+                                      onsubmit="return confirm('¿Estás seguro de eliminar esta sede? Esto podría afectar a los usuarios y reservas asociados.');">
+                                    <button type="submit" 
+                                            class="btn btn-sm btn-outline-danger" 
+                                            title="Eliminar">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="4" class="text-center text-muted p-4">
+                                No hay sedes registradas.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

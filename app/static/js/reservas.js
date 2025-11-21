@@ -362,27 +362,32 @@ document.addEventListener('DOMContentLoaded', function () {
             });
 
     // ==========================================================
-    // === PARTE 3: LÓGICA DE "VER DETALLE" (MODAL DE LECTURA)
+    // === PARTE 3: LÓGICA DE "VER DETALLE" Y "IMPRIMIR"
     // ==========================================================
     
     const modalVer = document.getElementById('modalVerReserva');
-    
+    const btnImprimir = document.getElementById('btnImprimirContrato');
+    let datosReservaActual = null; // Variable para guardar los datos cargados
+
     if (modalVer) {
         modalVer.addEventListener('show.bs.modal', function (event) {
             const button = event.relatedTarget; 
             const idReserva = button.getAttribute('data-id'); 
 
+            // Limpiar
             document.getElementById('view_codigo').textContent = "Cargando...";
             document.getElementById('view_tabla_adicionales').innerHTML = '';
+            datosReservaActual = null; // Resetear variable
 
             fetch(`/api/reservas/${idReserva}`)
                 .then(response => response.json())
                 .then(data => {
-                    if (data.error) {
-                        alert(data.error);
-                        return;
-                    }
+                    if (data.error) { alert(data.error); return; }
 
+                    // Guardamos los datos para usarlos al imprimir
+                    datosReservaActual = data;
+
+                    // Llenar campos visuales del modal
                     document.getElementById('view_codigo').textContent = data.codigo;
                     document.getElementById('view_estado').textContent = data.estado;
                     
@@ -396,14 +401,12 @@ document.addEventListener('DOMContentLoaded', function () {
                     document.getElementById('view_dni').textContent = data.dni;
                     document.getElementById('view_telefono').textContent = data.telefono;
                     document.getElementById('view_correo').textContent = data.correo;
-                    
                     document.getElementById('view_cumple').textContent = data.nombre_cumpleanero;
                     document.getElementById('view_fecha').textContent = data.fecha;
                     document.getElementById('view_horario').textContent = data.horario;
                     document.getElementById('view_salon').textContent = data.salon;
                     document.getElementById('view_modalidad').textContent = data.modalidad;
                     document.getElementById('view_paquete').textContent = data.paquete;
-                    
                     document.getElementById('view_ninos').textContent = data.ninos;
                     document.getElementById('view_adultos').textContent = data.adultos;
                     document.getElementById('view_total').textContent = 'S/ ' + data.total.toFixed(2);
@@ -428,10 +431,173 @@ document.addEventListener('DOMContentLoaded', function () {
                     }
                 })
                 .catch(err => {
-                    console.error("Error al cargar reserva:", err);
-                    document.getElementById('view_codigo').textContent = "Error de carga";
+                    console.error("Error:", err);
+                    document.getElementById('view_codigo').textContent = "Error";
                 });
         });
     }
+
+    // --- LÓGICA DE IMPRESIÓN (REPLICA DE WIX) ---
+    if (btnImprimir) {
+        btnImprimir.addEventListener('click', function() {
+            if (!datosReservaActual) return;
+
+            const r = datosReservaActual;
+            const logoUrl = "/static/images/logo.png"; // Usamos tu logo local
+
+            // Construir Tabla Adicionales
+            let tablaAdicionalesHTML = '';
+            if (r.adicionales && r.adicionales.length > 0) {
+                let filas = '';
+                r.adicionales.forEach(ad => {
+                    const montoItem = (parseFloat(ad.precio) * parseInt(ad.cantidad)).toFixed(2);
+                    filas += `
+                        <tr>
+                            <td>${ad.nombre}</td>
+                            <td>S/. ${parseFloat(ad.precio).toFixed(2)}</td>
+                            <td>${ad.cantidad}</td>
+                            <td>S/. ${montoItem}</td>
+                        </tr>`;
+                });
+
+                tablaAdicionalesHTML = `
+                    <h3 style="font-size: 14px; margin-top: 15px; margin-bottom: 5px;">ADICIONALES</h3>
+                    <table border="1" cellpadding="4" cellspacing="0" style="width: 100%; text-align: left; border-collapse: collapse; font-size: 11px;">
+                        <thead>
+                            <tr style="background-color: #f2f2f2;">
+                                <th>Nombre</th>
+                                <th>Precio Unitario</th>
+                                <th>Cantidad</th>
+                                <th>Monto</th>
+                            </tr>
+                        </thead>
+                        <tbody>${filas}</tbody>
+                    </table>`;
+            }
+
+            // HTML COMPLETO CON TÉRMINOS
+            const contenidoHTML = `
+                <html>
+                <head>
+                    <title>Contrato ${r.codigo}</title>
+                    <style>
+                        body { font-family: Arial, sans-serif; line-height: 1.2; color: #333; padding: 20px; max-width: 800px; margin: auto; }
+                        .resaltado { background-color: yellow !important; -webkit-print-color-adjust: exact; padding: 2px; }
+                        .texto-normal { text-align: justify; font-size: 12px; font-weight: normal; margin-bottom: 6px; }
+                        .watermark {
+                            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+                            opacity: 0.2; width: 80%; z-index: -1; pointer-events: none;
+                        }
+                        h2 { margin: 5px 0; }
+                        h3 { font-size: 16px; margin-top: 20px; margin-bottom: 10px; font-weight: bold; }
+                        h4 { font-size: 14px; margin-top: 15px; margin-bottom: 5px; font-weight: bold; }
+                        ul { list-style: none; padding: 0; display: flex; flex-wrap: wrap; }
+                        li { width: 50%; margin-bottom: 5px; font-size: 13px; }
+                        
+                        @media print {
+                            .resaltado { background-color: yellow !important; -webkit-print-color-adjust: exact; }
+                            .page-break { page-break-after: always; }
+                        }
+                    </style>
+                </head>
+                <body>
+                    <img class="watermark" src="${logoUrl}" alt="Marca de Agua">
+                    
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; border-bottom: 2px solid #ddd; padding-bottom: 10px;">
+                        <div style="text-align: center; font-size: 12px;">
+                            <h2 style="margin: 0;">¡ES HORA DE JUGAR!</h2>
+                            <p style="margin: 2px 0;">Telf.: 943779110</p>
+                            <p style="margin: 2px 0;">Facebook: Lúdicus Park</p>
+                            <p style="margin: 2px 0;">Instagram: ludicuspark.peru</p>
+                        </div>
+                        <div style="text-align: right;">
+                            <h3 style="margin: 0; font-size: 16px;">CONTRATO ${r.modalidad.toUpperCase().replace('PAQUETE ', '')} - ${r.codigo}</h3>
+                            <p style="margin: 2px 0; font-size: 14px;">${r.created_at}</p>
+                        </div>
+                    </div>
+
+                    <ul>
+                        <li><strong>Cliente:</strong> ${r.nombre_padres}</li>
+                        <li><strong>DNI:</strong> ${r.dni}</li>
+                        <li><strong>TELF.:</strong> ${r.telefono}</li>
+                        <li><strong>Día:</strong> ${r.fecha}</li>
+                        <li><strong>Salón:</strong> ${r.salon}</li>
+                        <li><strong>Horario:</strong> ${r.horario}</li>
+                        <li><strong>Invitados:</strong> ${r.ninos} niños, ${r.adultos} adultos</li>
+                        <li><strong>Cumpleañero / Edad:</strong> ${r.nombre_cumpleanero}</li>
+                        <li><strong>Combo:</strong> ${r.paquete}</li>
+                        <li style="width: 100%;"><strong>Accesorios:</strong> ${r.accesorios}</li>
+                        <li style="width: 100%;"><strong>Observaciones:</strong> ${r.comentarios}</li>
+                    </ul>
+
+                    <div style="display: flex; justify-content: space-between; font-size: 16px; margin: 10px 0; border-top: 1px solid #ccc; padding-top: 10px;">
+                        <span><strong>Total:</strong> S/. ${r.total.toFixed(2)}</span>
+                        <span><strong>A cuenta:</strong> S/. ${r.a_cuenta.toFixed(2)}</span>
+                        <span><strong>Saldo:</strong> S/. ${r.saldo.toFixed(2)}</span>
+                    </div>
+
+                    ${tablaAdicionalesHTML}
+
+                    <h3>TÉRMINOS</h3>
+                    <div style="font-size: 12px; text-align: justify;">
+                        <p style="margin-bottom: 6px;">1. El contrato es por el horario y la fecha específica. El precio convenido se cancelará con el 50% del paquete/ cantidad de niños al momento de la reserva y el 50% restante, el pago de adultos y adicionales una vez finalizada el evento. Los pagos serán vía transferencia bancaria a nuestra Cta. Cte. INTERBANK, mediante tarjeta de crédito, débito o efectivo en nuestras instalaciones.</p>
+                        <p style="margin-bottom: 6px;">2. Lúdicus Park no se responsabiliza por lesiones causadas por mal uso o falta de precaución en las instalaciones.</p>
+                        <p style="margin-bottom: 6px;">3. Una vez realizado el contrato en cantidad de niños- adulto y adicionales el monto total es el que se debe de reconocer al momento de la celebración. (Se puede mantener o aumentar la cantidad de invitados, más no disminuir).</p>
+                        <p style="margin-bottom: 6px;">4. No está permitido el ingreso a nuestros juegos y/o zonas recreativas, con algún tipo de calzado, juguete, alimento, bebida, accesorios, animales, espuma, serpentina, instrumentos punzocortantes y cualquier otro objeto que ponga en riesgo la integridad física de las personas. El acceso es EXCLUSIVAMENTE CON EL USO DE MEDIAS ANTIDESLIZANTES.</p>
+                        <p style="margin-bottom: 6px;">5. Está prohibido el consumo de cigarros, uso de vape y/u objetos que desprendan humo en las instalaciones del parque.</p>
+                        <p class="resaltado" style="margin-bottom: 6px;">6. En caso exista decoración externa, se admite como máximo 2 personas (NO NIÑOS), prohibido el uso de grapas, tachuelas o accesorios puntiagudos que involucren un deterioro al mobiliario prestado o a la integridad de los asistentes. El ingreso de la decoración es 30 minutos antes de la hora de reserva, en caso exista mobiliario externo, el plazo máximo de retiro o desmontaje es de 10 minutos posterior a la hora de término de contrato. En el caso se omita alguna de estas indicaciones, la persona que reservó deberá asumir el pago de una PENALIDAD CORRESPONDIENTE.</p>
+                        <p style="margin-bottom: 6px;">8. En el caso la persona que reserve, desee que su torta sea repartida dentro del establecimiento durante las horas de reserva, deberá de cancelar el servicio de corte correspondiente a s/25 nuevos soles. Dicho servicio incluye el corte de la torta por parte de la anfitriona y el menaje correspondiente a platos y cucharas, con una cantidad máxima de 33 unidades.</p>
+                        <p style="margin-top: 10px; font-size: 14px;"><strong>IMPORTANTE: No se permite el ingreso de comida o bebida externa, ni objetos punzocortantes como cuchillos, espátulas, entre otros. Así mismo no se permite el ingreso de show, payasos, arlequines, muñecos/botargas, carritos snacks. Como también el ingreso de bocaditos artesanales (sándwich de pollo, empanadas, alfajores, mazamorra, gelatina, manzanas acarameladas, algodones de azúcar, parrillas, gaseosas, chicha, bebidas alcohólicas, entre otros).</strong></p>
+                    </div>
+
+                    <div class="page-break" style="page-break-after: always;"></div>
+
+                    <h3>CONDICIONES</h3>
+                    <h4>RESERVAS/PAGOS</h4>
+                    <div style="font-size: 12px; text-align: justify;">
+                        <p class="texto-normal">1. Se podrá reprogramar una fecha de cumpleaños/reserva con un mínimo de 3 semanas de anticipación y sujeto a disponibilidad.</p>
+                        <p class="texto-normal">2. En el caso de anulación de una reserva, se cobrará una penalidad del 30% del total del monto contratado, por concepto de gastos administrativos y pérdida de prospectos clientes.</p>
+                        <p class="resaltado texto-normal">3. El cliente deberá cumplir y respetar el horario de finalización contratado previamente, en caso se exceda del tiempo establecido, pagará una penalidad correspondiente a tiempo excedido.</p>
+                        <p class="resaltado texto-normal">4. La cantidad de niños y adultos invitados por cada reserva deberán ser confirmados antes del día de reserva, especialmente en el paquete LUDI SUPER ESTRELLA, esta debe de confirmarse en su totalidad máximo 4 días antes del día de celebración.</p>
+                    </div>
+
+                    <h4>RESTRICCIONES</h4>
+                    <div style="font-size: 12px; text-align: justify;">
+                        <p class="texto-normal">1. A la reserva de cualquier paquete de cumpleaños el cliente deberá firmar un consentimiento informado y/o extensión de responsabilidad de LÚDICUS PARK.</p>
+                        <p class="texto-normal">2. LÚDICUS PARK, no se responsabiliza por eventuales lesiones en las personas por el mal uso, falta de precaución y/o no acatar las indicaciones de nuestro personal.</p>
+                        <p class="texto-normal">3. No están permitidos los siguientes productos: botellas de vidrio con agua y/o gaseosas, refrescos, bebidas alcohólicas, gelatina, mazamorra morada, algodón de azúcar, chupetes, manzana acaramelada, alimentos que tiñan y/o colorantes.</p>
+                        <p class="texto-normal">4. Se encuentra prohibido el uso de pica pica (bolitas de poliestireno) ni papel picado en las piñatas, aerosoles, máquinas de algodón, velas volcánicas, máquinas de humo ni realizar trucos con fuegos.</p>
+                        <p class="texto-normal">5. Prohibido el ingreso y uso de objetos punzocortantes (cuchillos, espátulas, navajas, cuter, entre otros). y/o armas dentro y a las afueras de nuestro establecimiento. Salvo excepciones se cuente con seguridad privada del cliente, se permite que miembros de seguridad salvaguarden, pero a las afueras de nuestro establecimiento, todo con previa comunicación.</p>
+                        <p class="resaltado texto-normal">6. El uso de los juegos es exclusivo para niños de 1 hasta los 14 años de edad. Considerando que la zona #1 es solo para niños de 1 hasta los 5 años, y la zona #2 para niños de 6 hasta los 14 años (incluye la Nave Ludi, Vertical Rush, El Barco y Jump), el juego METLDOWN es exclusivo para niños de 8 hasta los 14 años. Se pide respetar correctamente dichas indicaciones para la seguridad de sus invitados. Mayores de 15 años, se consideran como precio de adultos en la entrada.</p>
+                        <p class="texto-normal">7. Nuestros paquetes no incluyen servilletas, vasos, hielo.</p>
+                    </div>
+
+                    <p style="margin-top: 20px; font-size: 12px;"><strong>HABIENDO LEÍDO Y ACEPTADO LOS TÉRMINOS Y CONDICIONES DE RENTA, SE FIRMA EL PRESENTE CONTRATO.</strong></p>
+                    
+                    <div style="margin-top: 80px; text-align: center;">
+                        <p>______________________________</p>
+                        <p style="font-weight: bold;">CONTRATANTE</p>
+                        <p>${r.nombre_padres}</p>
+                        <p>DNI: ${r.dni}</p>
+                    </div>
+                </body>
+                </html>
+            `;
+
+            // Usar el iframe oculto para imprimir
+            const iframe = document.getElementById('iframeImpresion');
+            const doc = iframe.contentWindow.document;
+            doc.open();
+            doc.write(contenidoHTML);
+            doc.close();
+            
+            // Esperar un momento a que carguen estilos/imagenes e imprimir
+            setTimeout(() => {
+                iframe.contentWindow.focus();
+                iframe.contentWindow.print();
+            }, 500);
+        });
+    }
+
 });
 })

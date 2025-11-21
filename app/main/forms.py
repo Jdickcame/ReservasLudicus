@@ -1,14 +1,15 @@
 """
-Formularios (Flask-WTF) para los modales,
-adaptados a los campos de tu CSV y los mockups.
+Formularios (Flask-WTF) para los modales.
 """
 
 from flask_wtf import FlaskForm
 from wtforms import (
+    BooleanField,
     DateField,
     DecimalField,
     HiddenField,
     IntegerField,
+    PasswordField,
     RadioField,
     SelectField,
     StringField,
@@ -208,3 +209,21 @@ class SedeForm(FlaskForm):
         ],
     )
     submit = SubmitField("Guardar Sede")
+
+
+class UserForm(FlaskForm):
+    """Formulario para gestionar Usuarios del sistema."""
+
+    username = StringField(
+        "Nombre de Usuario", validators=[DataRequired(), Length(min=3, max=64)]
+    )
+
+    # La contraseña es opcional al editar (si la dejan vacía, no se cambia)
+    password = PasswordField("Contraseña", validators=[Optional(), Length(min=6)])
+
+    # Select para la Sede (se llena dinámicamente en la ruta)
+    sede_id = SelectField("Asignar Sede", coerce=int, validators=[DataRequired()])
+
+    is_admin = BooleanField("¿Es Administrador General?")
+
+    submit = SubmitField("Guardar Usuario")

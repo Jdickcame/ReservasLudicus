@@ -5,14 +5,20 @@ from flask_login import current_user, login_required
 
 from app import db
 from app.main import bp
-from app.main.forms import AdicionalForm, PaymentForm, ReservationForm, SedeForm
+from app.main.forms import (
+    AdicionalForm,
+    PaymentForm,
+    ReservationForm,
+    SedeForm,
+    UserForm,
+)
 from app.main.services import (
     get_all_reservations,
     get_next_reservation_code,
     get_payments_by_date_range,
     get_reservations_by_date_range,
 )
-from app.models import Adicional, Sede
+from app.models import Adicional, Sede, User
 
 
 @bp.route("/")
@@ -300,3 +306,135 @@ def editar_sede(id):
             db.session.rollback()
             flash(f"Error al actualizar la sede. {e}", "danger")
     return render_template("admin/gestionar_sede.html", title="Editar Sede", form=form)
+
+
+@bp.route("/admin/sedes/eliminar/<int:id>", methods=["POST"])
+@login_required
+def eliminar_sede(id):
+    """Elimina una sede (solo por POST)."""
+    sede = Sede.query.get_or_404(id)
+    try:
+        nombre = sede.nombre
+        # Opcional: Verificar si hay usuarios o reservas antes de borrar
+        # if sede.users.count() > 0 or sede.reservations.count() > 0:
+        #     flash("No puedes eliminar una sede que tiene usuarios o reservas.", "warning")
+        #     return redirect(url_for("main.admin_sedes"))
+
+        db.session.delete(sede)
+        db.session.commit()
+        flash(f"Sede '{nombre}' ha sido eliminada.", "danger")
+    except Exception as e:
+        db.session.rollback()
+        flash(f"Error al eliminar la sede: {e}", "danger")
+
+    return redirect(url_for("main.admin_sedes"))
+
+
+# ==========================================================
+# === RUTAS DEL PANEL DE ADMIN (USUARIOS) ===
+# ==========================================================
+
+
+@bp.route("/admin/usuarios")
+@login_required
+def admin_usuarios():
+    """Lista todos los usuarios y sus sedes."""
+    # Solo un admin debería ver esto
+    if not current_user.is_admin:
+        flash("Acceso denegado.", "danger")
+        return redirect(url_for("main.index"))
+
+    users = User.query.order_by(User.username).all()
+    return render_template(
+        "admin/usuarios.html", title="Gestión de Usuarios", users=users
+    )
+
+
+@bp.route("/admin/usuarios/nuevo", methods=["GET", "POST"])
+@login_required
+def nuevo_usuario():
+    form = UserForm()
+    # Llenar el select de Sedes
+    form.sede_id.choices = [
+        (s.id, f"{s.nombre} ({s.prefijo})") for s in Sede.query.all()
+    ]
+
+    if form.validate_on_submit():
+        if User.query.filter_by(username=form.username.data).first():
+            flash("El nombre de usuario ya existe.", "warning")
+        else:
+            try:
+                nuevo_user = User(
+                    username=form.username.data,
+                    sede_id=form.sede_id.data,
+                    is_admin=form.is_admin.data,
+                )
+                # Encriptar contraseña (obligatoria al crear)
+                if form.password.data:
+                    nuevo_user.set_password(form.password.data)
+                else:
+                    flash(
+                        "La contraseña es obligatoria para usuarios nuevos.", "danger"
+                    )
+                    return render_template(
+                        "admin/gestionar_usuario.html", form=form, title="Nuevo Usuario"
+                    )
+
+                db.session.add(nuevo_user)
+                db.session.commit()
+                flash(f"Usuario {nuevo_user.username} creado exitosamente.", "success")
+                return redirect(url_for("main.admin_usuarios"))
+            except Exception as e:
+                db.session.rollback()
+                flash(f"Error al crear usuario: {e}", "danger")
+
+    return render_template(
+        "admin/gestionar_usuario.html", form=form, title="Nuevo Usuario"
+    )
+
+
+@bp.route("/admin/usuarios/editar/<int:id>", methods=["GET", "POST"])
+@login_required
+def editar_usuario(id):
+    user = User.query.get_or_404(id)
+    form = UserForm(obj=user)
+    form.sede_id.choices = [
+        (s.id, f"{s.nombre} ({s.prefijo})") for s in Sede.query.all()
+    ]
+
+    if form.validate_on_submit():
+        try:
+            user.username = form.username.data
+            user.sede_id = form.sede_id.data
+            user.is_admin = form.is_admin.data
+
+            # Solo cambiamos la contraseña si escribieron algo nuevo
+            if form.password.data:
+                user.set_password(form.password.data)
+
+            db.session.commit()
+            flash(f"Usuario {user.username} actualizado.", "info")
+            return redirect(url_for("main.admin_usuarios"))
+        except Exception as e:
+            db.session.rollback()
+            flash(f"Error al actualizar: {e}", "danger")
+
+    return render_template(
+        "admin/gestionar_usuario.html", form=form, title="Editar Usuario"
+    )
+
+
+@bp.route("/admin/usuarios/eliminar/<int:id>", methods=["POST"])
+@login_required
+def eliminar_usuario(id):
+    if id == current_user.id:
+        flash(
+            "No puedes eliminar tu propio usuario mientras estás conectado.", "warning"
+        )
+        return redirect(url_for("main.admin_usuarios"))
+
+    user = User.query.get_or_404(id)
+    db.session.delete(user)
+    db.session.commit()
+    flash(f"Usuario {user.username} eliminado.", "danger")
+    return redirect(url_for("main.admin_usuarios"))

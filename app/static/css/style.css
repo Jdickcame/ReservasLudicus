@@ -1,5 +1,6 @@
-/* === Importar Fuente Bango Pro === */
-/* Asegúrate de tener el archivo de la fuente en app/static/fonts/ */
+/* =========================================
+   1. FUENTES Y VARIABLES
+   ========================================= */
 @font-face {
     font-family: 'Bango Pro';
     src: url('../fonts/BangoPro.ttf') format('truetype');
@@ -7,50 +8,53 @@
     font-style: normal;
 }
 
-/* === Variables de Color (Basadas en Mockups) === */
 :root {
-    --brand-purple: #5F27CD; /* Morado del header */
-    --brand-pink: #F04E99;   /* Rosa-fucsia de la sidebar y login */
+    --brand-purple: #5F27CD;
+    --brand-pink: #F04E99;
     --brand-purple-dark: #4B1F9E;
     --brand-pink-dark: #D9438A;
-    --brand-blue-dark: #0d2c54; /* Azul oscuro para tablas */
+    --brand-blue-dark: #0d2c54;
     --brand-text-light: #ffffff;
+    --header-height: 120px; /* Altura fija del encabezado */
+    --sidebar-width: 240px; /* Ancho del menú */
 }
 
-/* === Layout General === */
+/* =========================================
+   2. LAYOUT GENERAL
+   ========================================= */
 body {
     background-color: #f4f7f6;
     margin: 0;
     padding: 0;
+    overflow-x: hidden; /* Evita scroll horizontal general */
 }
 
-
-/* === 1. Encabezado (Header Banner) === */
+/* =========================================
+   3. ENCABEZADO (HEADER BANNER) - FIJO ARRIBA
+   ========================================= */
 .header-banner {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: var(--header-height);
+    z-index: 1060; /* El más alto */
+    
+    background-color: var(--brand-purple);
     background-image: url('../images/fondo_header.jpg');
     background-size: cover;
     background-position: center;
-    padding: 10px 20px;
-    /* ANTES: display: flex; justify-content: center; align-items: center; */
-    display: grid; /* Cambiamos a Grid para un control más preciso */
-    grid-template-columns: auto 1fr auto; /* Columna para botón, título y logo */
-    align-items: center; /* Centrar verticalmente */
-
-    height: 120px;
-    width: 100%;
-    position: relative; 
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    padding: 0 20px;
 }
 
-/* --- Botón de Hamburguesa --- */
 .sidebar-toggle {
-    display: none; 
-    /* ANTES: position: absolute; left: 20px; top: 50%; transform: translateY(-50%); z-index: 1040; */
-    position: static; /* Ya no es absoluto, ahora es parte del grid */
-    grid-column: 1; /* Primera columna del grid */
-    justify-self: start; /* Alinearlo a la izquierda de su columna */
-    margin-left: 10px; /* Un poco de margen desde el borde */
-    z-index: 1; /* Ya no necesita un z-index tan alto */
-
+    display: none; /* Oculto en PC */
+    grid-column: 1;
     background: rgba(255,255,255,0.2);
     border: 1px solid white;
     color: white;
@@ -58,293 +62,256 @@ body {
     width: 40px;
     height: 40px;
     border-radius: 5px;
+    cursor: pointer;
 }
 
-.header-banner .header-image {
-    height: 100%; 
-    max-height: 100px; 
-    object-fit: contain;
-}
-
+.header-banner .header-image { height: 80%; max-height: 100px; object-fit: contain; }
 .header-banner .header-title {
     font-family: 'Bango Pro', sans-serif; 
     color: var(--brand-text-light);
-    font-size: 4.5rem; 
-    text-shadow: 5px 5px 10px rgba(0,0,0,0.6);
+    font-size: 4rem; 
+    text-shadow: 3px 3px 6px rgba(0,0,0,0.4);
     white-space: nowrap; 
-    /* ANTES: margin-left: 2rem; margin-right: 2rem; */
-    grid-column: 2; /* Segunda columna del grid (la central) */
-    justify-self: center; /* Centrar horizontalmente dentro de su columna */
-    text-align: center; /* Asegura el centrado del texto si ocupa varias líneas */
-    margin: 0 1rem; /* Margen más controlado en los lados */
+    grid-column: 2;
+    justify-self: center;
+    text-align: center;
 }
+.header-banner .header-image.right { grid-column: 3; justify-self: end; }
 
-.header-banner .header-image.right {
-    grid-column: 3; /* Tercera columna del grid */
-    justify-self: end; /* Alinearlo a la derecha de su columna */
-    margin-right: 10px; /* Un poco de margen desde el borde */
-}
-
-/* === 2. Contenedor Principal (Sidebar + Contenido) === */
-.main-layout-wrapper {
-    display: flex;
-    min-height: calc(100vh - 120px);
-}
-
-/* === 3. Barra Lateral (Sidebar) === */
+/* =========================================
+   4. BARRA LATERAL (SIDEBAR) - CORREGIDO
+   ========================================= */
 .sidebar {
-    width: 220px;
-    flex-shrink: 0;
+    position: fixed;
+    top: var(--header-height);
+    left: 0;
+    bottom: 0;
+    width: var(--sidebar-width);
+    z-index: 1050;
+    
+    background-color: var(--brand-pink) !important; 
     background-image: url('../images/fondo_sidebar.png');
     background-size: cover;
     background-position: center;
-    color: var(--brand-text-light);
-    padding: 1.5rem 1rem;
+    color: white;
+    
     display: flex;
     flex-direction: column;
-    transition: margin-left .3s ease;
-
-    /* --- CAMBIO RADICAL ---
-       Se eliminaron las siguientes líneas que rompían el modal:
-       - position: sticky;
-       - top: 120px;
-       - height: calc(100vh - 120px); 
-       - overflow-y: auto; 
-       La barra lateral ahora se desplazará con el contenido.
-    */
+    box-shadow: 4px 0 15px rgba(0,0,0,0.1);
+    overflow: hidden; 
 }
 
-.sidebar .sidebar-logo {
-    display: none;
-}
-.sidebar .nav-link {
-    color: var(--brand-text-light);
-    font-size: 1.1rem;
-    padding: 0.75rem 1rem;
-    border-radius: 0.5rem;
-    font-weight: 500;
-    border: 1px solid var(--brand-text-light);
-    text-align: center;
-    margin-bottom: 1rem;
-}
-.sidebar .nav-link:hover {
-    background-color: var(--brand-pink-dark);
-    border-color: var(--brand-pink-dark);
-}
-.sidebar .nav-link.active {
-    background-color: var(--brand-text-light);
-    color: var(--brand-pink);
-    font-weight: 700;
-}
-.sidebar .dropdown {
-    margin-top: auto; /* Esto sigue funcionando para empujar el user al fondo */
-}
-.sidebar .dropdown-menu {
-    background-color: var(--brand-pink);
-    border: none;
-}
-.sidebar .dropdown-item:hover {
-    background-color: var(--brand-pink-dark);
-}
-
-
-/* === 4. Área de Contenido Principal === */
-.main-content {
-    flex-grow: 1;
-    background-color: #f8f9fa;
-    padding: 1.5rem;
-    transition: margin-left .3s ease;
+/* --- LISTA DE NAVEGACIÓN (FIX SCROLL) --- */
+.sidebar .nav {
+    flex-grow: 1; 
+    overflow-y: auto; 
+    overflow-x: hidden; /* Mantenemos esto para seguridad */
     
-    /* El "truco" para que la tabla no rompa el layout (ESTE SE QUEDA) */
-    min-width: 0;
+    padding-top: 1rem !important; 
+    padding-bottom: 2rem;
+    padding-left: 0;
+    padding-right: 0;
 
-    /* CAMBIO: Eliminado 'position: relative' que rompía el overlay */
+    /* CAMBIO CLAVE: Usar block en lugar de flex para evitar conflictos con collapse */
+    display: block !important; 
+    width: 100%;
+    
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255,255,255,0.3) transparent;
 }
 
-/* --- Overlay para el fondo --- */
+.sidebar .nav-item { width: 100%; display: block; }
+
+/* --- ENLACES PRINCIPALES --- */
+.sidebar .nav-link {
+    color: rgba(255,255,255,0.9);
+    font-size: 1.05rem; 
+    
+    /* Márgenes laterales */
+    margin: 0 0.8rem 0.3rem 0.8rem; 
+    padding: 0.9rem 1.2rem; 
+    border-radius: 0.8rem; 
+    transition: background-color 0.2s, color 0.2s;
+    
+    display: flex;
+    align-items: center; 
+    
+    /* CAMBIO: width auto + block layout se adapta solo */
+    width: auto; 
+    box-sizing: border-box;
+    
+    font-weight: 500;
+    border: 1px solid transparent;
+    
+    /* Seguridad para textos largos */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.sidebar .nav-link:hover {
+    background-color: rgba(255, 255, 255, 0.15) !important; 
+    color: white !important;
+}
+
+.sidebar .nav-pills .nav-link.active, 
+.sidebar .nav-link.active {
+    background-color: rgba(255, 255, 255, 0.25) !important; 
+    color: white !important;
+    font-weight: 700;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+
+/* --- SUBMENÚS (CORREGIDO) --- */
+
+/* 1. Reset de márgenes de Bootstrap */
+.sidebar ul.collapse, 
+.sidebar ul.collapsing {
+    margin-left: 0 !important;
+    padding-left: 0 !important;
+    background-color: transparent;
+    width: 100%;
+}
+
+/* 2. ESTILOS DE LOS HIJOS */
+.sidebar .nav-item ul .nav-link {
+    padding: 0.6rem 1rem 0.6rem 2.5rem !important; 
+    font-size: 0.95rem !important; 
+    color: rgba(255,255,255,0.8) !important; 
+    background-color: transparent !important; 
+    border-radius: 0.6rem !important;
+    
+    margin: 0 0.8rem 2px 0.8rem !important;
+    
+    box-shadow: none !important;
+    transform: none !important;
+    
+    /* CAMBIO: width auto */
+    width: auto !important;
+    box-sizing: border-box !important;
+    display: block !important; 
+}
+
+.sidebar .nav-item ul .nav-link:hover {
+    background-color: rgba(255, 255, 255, 0.1) !important;
+}
+.sidebar .nav-item ul .nav-link.active {
+    background-color: rgba(255, 255, 255, 0.2) !important;
+    font-weight: 600 !important;
+}
+
+/* Flechita */
+.sidebar .dropdown-toggle::after {
+    margin-left: auto;
+    transition: transform 0.2s;
+    opacity: 0.7;
+}
+.sidebar .nav-link[aria-expanded="true"] .dropdown-toggle::after {
+    transform: rotate(90deg);
+    opacity: 1;
+}
+
+/* Footer del Sidebar */
+.sidebar .sidebar-footer {
+    flex-shrink: 0;
+    padding: 1rem;
+    background-color: rgba(0,0,0,0.15);
+    border-top: 1px solid rgba(255,255,255,0.1);
+    width: 100%;
+}
+.sidebar .dropdown { width: 100%; }
+.sidebar .dropdown-menu {
+    background-color: var(--brand-purple-dark); /* Mantenemos el fondo morado oscuro */
+    border: 1px solid rgba(255,255,255,0.2);
+    /* Opcional: quita el relleno vertical para que el botón ocupe todo el espacio */
+    padding: 0; 
+    overflow: hidden; /* Para respetar los bordes redondeados */
+}
+.sidebar .dropdown-item { 
+    color: white; 
+    padding: 10px 1rem; /* Un poco más de espacio para clickear */
+    transition: background-color 0.2s;
+}
+.sidebar .dropdown-item:hover,
+.sidebar .dropdown-item:focus { 
+    background-color: rgba(255, 255, 255, 0.15); /* Igual que el menú de arriba */
+    color: white;
+}
+
+/* =========================================
+   5. CONTENIDO PRINCIPAL
+   ========================================= */
+.main-layout-wrapper {
+    /* Empujamos el contenido para respetar Header y Sidebar fijos */
+    margin-top: var(--header-height);
+    margin-left: var(--sidebar-width);
+    min-height: calc(100vh - var(--header-height));
+    padding: 0;
+    transition: margin-left 0.3s ease;
+}
+
+.main-content {
+    padding: 2rem;
+    width: 100%;
+}
+
+/* Overlay Móvil */
 .overlay {
     display: none;
-    /* CAMBIO: De 'absolute' a 'fixed' para que funcione
-       sin un padre 'relative'. */
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0,0,0,0.5);
-    z-index: 999;
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.5); z-index: 1040;
 }
-body.sidebar-open .overlay {
-    display: block;
+body.sidebar-open .overlay { display: block; }
+
+/* =========================================
+   6. RESPONSIVE (Móvil y Tablet)
+   ========================================= */
+@media (max-width: 992px) {
+    :root { --header-height: 80px; } /* Header más chico en móvil */
+    
+    .header-banner .header-title { font-size: 2.5rem; }
+    .header-banner .header-image { display: none; }
+    .sidebar-toggle { display: block; } /* Botón hamburguesa visible */
+    
+    /* Sidebar escondido a la izquierda */
+    .sidebar { margin-left: calc(var(--sidebar-width) * -1); }
+    
+    /* Contenido ocupa todo el ancho */
+    .main-layout-wrapper { margin-left: 0; }
+    
+    /* Al abrir menú */
+    body.sidebar-open .sidebar { margin-left: 0; }
 }
 
+/* Móvil pequeño */
+@media (max-width: 768px) {
+    .header-banner .header-title { font-size: 1.8rem; }
+    .main-content { padding: 1rem; }
+}
 
-/* --- Estilos de Componentes (Botones, Tablas) --- */
+/* =========================================
+   7. COMPONENTES
+   ========================================= */
 .btn-primary-custom {
     background-color: var(--brand-purple);
     border-color: var(--brand-purple);
-    color: var(--brand-text-light);
-    font-weight: 500;
-    padding: 0.5rem 1.25rem;
-    border-radius: 0.5rem;
-    text-transform: uppercase;
-    font-size: 0.9rem;
-}
-.btn-primary-custom:hover {
-    background-color: var(--brand-purple-dark);
-    border-color: var(--brand-purple-dark);
-}
-.table-dark-custom {
-    background-color: var(--brand-blue-dark);
     color: white;
 }
-.bg-success-custom {
-    background-color: #198754 !important;
-    color: white;
-}
-.bg-warning-custom {
-    background-color: #ffc107 !important;
-    color: #000;
-}
-.bg-danger-custom {
-    background-color: #dc3545 !important;
-    color: white;
-}
-.form-label { font-weight: 500; }
-.form-control:focus, .form-select:focus {
-    border-color: var(--brand-purple);
-    box-shadow: 0 0 0 0.25rem rgba(95, 39, 205, 0.25);
-}
-.form-check-input:checked {
-    background-color: var(--brand-pink);
-    border-color: var(--brand-pink);
-}
-
+.table-dark-custom { background-color: var(--brand-blue-dark); color: white; }
+.bg-success-custom { background-color: #198754 !important; color: white; }
+.bg-warning-custom { background-color: #ffc107 !important; color: #000; }
+.bg-danger-custom { background-color: #dc3545 !important; color: white; }
 .reservation-code-display {
-    font-family: 'Bango Pro', sans-serif; /* Usa tu fuente personalizada */
+    font-family: 'Bango Pro', sans-serif;
     font-size: 1.5rem;
     font-weight: bold;
-    color: var(--brand-blue-dark); /* Color de tu tabla */
-    
-    background-color: #f4f7f6; /* Un fondo gris claro */
-    padding: 0.375rem 0.75rem;
-    border-radius: 0.375rem;
-    border: 1px solid #dee2e6; /* Borde sutil */
-    letter-spacing: 2px; /* Espaciado de letras */
+    color: var(--brand-blue-dark);
+    background-color: #fff;
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    border: 1px solid #dee2e6;
 }
-
-
-/* === 5. Responsive Design (Media Queries) === */
-
-/* Para Tablets (menos de 992px) */
-@media (max-width: 992px) {
-    .header-banner {
-        height: 100px;
-    }
-    .header-banner .header-title {
-        /* ANTES: font-size: 3.5rem; margin-left: 1.5rem; margin-right: 1.5rem; */
-        font-size: 3.2rem; /* Un poco más pequeño */
-        margin: 0; /* Ya no necesita estos márgenes */
-    }
-    .header-banner .header-image {
-        max-height: 80px;
-    }
-    
-    .header-banner .header-image.left {
-        display: none;
-        width: 0; /* Asegura que no ocupe ancho */
-        height: 0; /* Asegura que no ocupe alto */
-        margin: 0; /* Elimina cualquier margen residual */
-        padding: 0; /* Elimina cualquier padding residual */
-    }
-    
-    .sidebar {
-        /* Sigue siendo un menú flotante en pantallas pequeñas */
-        position: fixed;
-        top: 0;
-        left: 0;
-        height: 100vh; 
-        z-index: 1050;
-        margin-left: -220px; 
-        overflow-y: auto; /* Se mantiene el scroll interno para el menú flotante */
-    }
-    .sidebar-toggle {
-        display: block;
-    }
-    body.sidebar-open .sidebar {
-        margin-left: 0;
-    }
-    
-    .main-layout-wrapper {
-        min-height: calc(100vh - 100px);
-    }
-    
-    .card-body > form.row {
-        align-items: flex-end;
-    }
-    .card-body > form.row > .col-md {
-        flex-grow: 1; 
-    }
-}
-
-/* Para Teléfonos Móviles (menos de 768px) */
-@media (max-width: 768px) {
-    .header-banner {
-        height: 80px;
-        /* ANTES: padding: 5px 10px; */
-        padding: 5px; /* Un padding más uniforme */
-        grid-template-columns: auto 1fr auto; /* Mantenemos el grid */
-    }
-    .header-banner .header-title {
-        /* ANTES: font-size: 2.2rem; margin-left: 1rem; margin-right: 1rem; */
-        font-size: 1.8rem; /* Aún más pequeño para pantallas muy pequeñas */
-        margin: 0; /* Asegurar que no haya márgenes que descentren */
-    }
-    .header-banner .header-image {
-        max-height: 60px;
-    }
-    .sidebar-toggle {
-        left: 10px; 
-    }
-
-    .main-layout-wrapper {
-        flex-direction: row; 
-        min-height: calc(100vh - 80px);
-    }
-
-    .sidebar {
-        width: 220px;
-        flex-direction: column;
-        flex-wrap: nowrap;
-        justify-content: flex-start;
-        padding: 1.5rem 1rem;
-    }
-    .sidebar .nav-link {
-        width: auto;
-        margin: 0 0 1rem 0;
-    }
-    .sidebar .dropdown {
-        display: block;
-    }
-
-    .main-content {
-        padding: 1rem;
-    }
-    
-    .table-responsive {
-        overflow-x: auto;
-    }
-
-    .card-body > form.row {
-        flex-direction: column; 
-        align-items: stretch; 
-    }
-    .card-body > form.row > [class*="col-"] {
-        width: 100%; 
-        padding: 0;
-        margin-bottom: 0.75rem; 
-    }
-    .card-body > form.row .btn {
-        width: 100%; 
-    }
-}
+/* Fixes Modales */
+.modal-backdrop { z-index: 1060; }
+.modal { z-index: 1070; }
+body.modal-open { overflow: auto !important; }

@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% from "_formhelpers.html" import render_field %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row justify-content-center">
+        <div class="col-lg-6">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-white py-3">
+                    <h4 class="mb-0 text-dark">{{ title }}</h4>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="" novalidate>
+                        {{ form.hidden_tag() }}
+                        
+                        <div class="mb-3">
+                            {{ render_field(form.username, class="form-control") }}
+                        </div>
+                        
+                        <div class="mb-3">
+                            {{ render_field(form.password, class="form-control", placeholder="Dejar vacío para mantener la actual") }}
+                        </div>
+
+                        <div class="mb-3">
+                            {{ render_field(form.sede_id, class="form-select") }}
+                            <div class="form-text">Todas las reservas que cree este usuario se asignarán a esta sede.</div>
+                        </div>
+
+                        <div class="mb-3 form-check">
+                            {{ form.is_admin(class="form-check-input") }}
+                            {{ form.is_admin.label(class="form-check-label fw-bold") }}
+                            <div class="form-text">Los administradores pueden ver todas las sedes y cambiar configuraciones.</div>
+                        </div>
+
+                        <hr>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <a href="{{ url_for('main.admin_usuarios') }}" class="btn btn-outline-secondary">Cancelar</a>
+                            {{ form.submit(class="btn btn-primary-custom btn-lg") }}
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
