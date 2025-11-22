@@ -50,11 +50,35 @@
                             <i class="bi bi-cash-coin me-2"></i> Abonos
                         </a>
                     </li>
-                    <li class="nav-item">
-                        <a href="#" class="nav-link disabled" tabindex="-1" aria-disabled="true">Reportes</a>
-                    </li>
 
                     {% if current_user.is_admin %}
+                    <li class="nav-item mb-2">
+                        <a href="#submenuReportes" data-bs-toggle="collapse" aria-expanded="{% if 'reportes_' in request.endpoint %}true{% else %}false{% endif %}" class="nav-link text-white dropdown-toggle d-flex align-items-center justify-content-between">
+                            <span><i class="bi bi-bar-chart-line me-2"></i> Reportes</span>
+                        </a>
+                        
+                        <ul class="collapse list-unstyled fw-normal pb-1 small ms-4 
+                                   {% if 'reportes_' in request.endpoint %}show{% endif %}" 
+                            id="submenuReportes" data-bs-parent="#sidebar-wrapper">
+                            
+                            <li class="nav-item">
+                                <a href="{{ url_for('main.reportes_general') }}" class="nav-link text-white {% if request.endpoint == 'main.reportes_general' %}active bg-white bg-opacity-10{% endif %} rounded mb-1">
+                                    <i class="bi bi-grid-1x2 me-2"></i> General
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="{{ url_for('main.reportes_ventas') }}" class="nav-link text-white {% if request.endpoint == 'main.reportes_ventas' %}active bg-white bg-opacity-10{% endif %} rounded mb-1">
+                                    <i class="bi bi-cash-coin me-2"></i> Ventas Detalladas
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="{{ url_for('main.reportes_productos') }}" class="nav-link text-white {% if request.endpoint == 'main.reportes_productos' %}active bg-white bg-opacity-10{% endif %} rounded mb-1">
+                                    <i class="bi bi-box-seam me-2"></i> Productos
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+
                     <hr class="text-white-50 my-2 mx-3">
 
                     <li class="nav-item mb-2">

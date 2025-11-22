@@ -1,7 +1,11 @@
+import csv
 from datetime import datetime
+from functools import wraps
+from io import StringIO
 
-from flask import flash, redirect, render_template, request, url_for
+from flask import flash, make_response, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
+from sqlalchemy import func
 
 from app import db
 from app.main import bp
@@ -18,7 +22,20 @@ from app.main.services import (
     get_payments_by_date_range,
     get_reservations_by_date_range,
 )
-from app.models import Adicional, Sede, User
+from app.models import Adicional, Payment, Reservation, Sede, User
+
+
+def admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_authenticated or not current_user.is_admin:
+            flash(
+                "⛔ Acceso denegado. Se requieren permisos de Administrador.", "danger"
+            )
+            return redirect(url_for("main.index"))
+        return f(*args, **kwargs)
+
+    return decorated_function
 
 
 @bp.route("/")
@@ -188,6 +205,7 @@ def abonos():
 
 @bp.route("/admin/adicionales")
 @login_required
+@admin_required
 def admin_adicionales():
     """Muestra la lista de todos los adicionales."""
     adicionales = Adicional.query.order_by(Adicional.nombre).all()
@@ -198,6 +216,7 @@ def admin_adicionales():
 
 @bp.route("/admin/adicionales/nuevo", methods=["GET", "POST"])
 @login_required
+@admin_required
 def nuevo_adicional():
     """Crea un nuevo adicional."""
     form = AdicionalForm()
@@ -219,6 +238,7 @@ def nuevo_adicional():
 
 @bp.route("/admin/adicionales/editar/<int:id>", methods=["GET", "POST"])
 @login_required
+@admin_required
 def editar_adicional(id):
     """Edita un adicional existente."""
     adicional = Adicional.query.get_or_404(id)
@@ -242,6 +262,7 @@ def editar_adicional(id):
 
 @bp.route("/admin/adicionales/eliminar/<int:id>", methods=["POST"])
 @login_required
+@admin_required
 def eliminar_adicional(id):
     """Elimina un adicional (solo por POST)."""
     adicional = Adicional.query.get_or_404(id)
@@ -264,6 +285,7 @@ def eliminar_adicional(id):
 
 @bp.route("/admin/sedes")
 @login_required
+@admin_required
 def admin_sedes():
     sedes = Sede.query.order_by(Sede.nombre).all()
     return render_template("admin/sedes.html", title="Admin Sedes", sedes=sedes)
@@ -271,6 +293,7 @@ def admin_sedes():
 
 @bp.route("/admin/sedes/nuevo", methods=["GET", "POST"])
 @login_required
+@admin_required
 def nueva_sede():
     form = SedeForm()
     if form.validate_on_submit():
@@ -292,6 +315,7 @@ def nueva_sede():
 
 @bp.route("/admin/sedes/editar/<int:id>", methods=["GET", "POST"])
 @login_required
+@admin_required
 def editar_sede(id):
     sede = Sede.query.get_or_404(id)
     form = SedeForm(obj=sede)
@@ -310,6 +334,7 @@ def editar_sede(id):
 
 @bp.route("/admin/sedes/eliminar/<int:id>", methods=["POST"])
 @login_required
+@admin_required
 def eliminar_sede(id):
     """Elimina una sede (solo por POST)."""
     sede = Sede.query.get_or_404(id)
@@ -337,6 +362,7 @@ def eliminar_sede(id):
 
 @bp.route("/admin/usuarios")
 @login_required
+@admin_required
 def admin_usuarios():
     """Lista todos los usuarios y sus sedes."""
     # Solo un admin debería ver esto
@@ -344,7 +370,7 @@ def admin_usuarios():
         flash("Acceso denegado.", "danger")
         return redirect(url_for("main.index"))
 
-    users = User.query.order_by(User.username).all()
+    users = User.query.order_by(User.id).all()
     return render_template(
         "admin/usuarios.html", title="Gestión de Usuarios", users=users
     )
@@ -352,6 +378,7 @@ def admin_usuarios():
 
 @bp.route("/admin/usuarios/nuevo", methods=["GET", "POST"])
 @login_required
+@admin_required
 def nuevo_usuario():
     form = UserForm()
     # Llenar el select de Sedes
@@ -395,6 +422,7 @@ def nuevo_usuario():
 
 @bp.route("/admin/usuarios/editar/<int:id>", methods=["GET", "POST"])
 @login_required
+@admin_required
 def editar_usuario(id):
     user = User.query.get_or_404(id)
     form = UserForm(obj=user)
@@ -426,6 +454,7 @@ def editar_usuario(id):
 
 @bp.route("/admin/usuarios/eliminar/<int:id>", methods=["POST"])
 @login_required
+@admin_required
 def eliminar_usuario(id):
     if id == current_user.id:
         flash(
@@ -438,3 +467,276 @@ def eliminar_usuario(id):
     db.session.commit()
     flash(f"Usuario {user.username} eliminado.", "danger")
     return redirect(url_for("main.admin_usuarios"))
+
+
+@bp.route("/reportes")
+@login_required
+@admin_required
+def reportes():
+    return redirect(url_for("main.reportes_general"))
+
+
+@bp.route("/reportes/general")
+@login_required
+@admin_required
+def reportes_general():
+    """Reporte General (KPIs, Gráficos Mensuales y Deudores)."""
+
+    # 1. FILTRO DE SEDE (LÓGICA DE ADMIN)
+    sede_filtro_id = request.args.get("sede_filtro", type=int)
+    filtro_sede_id = None
+
+    if current_user.is_admin:
+        # Si es admin, usamos el ID que viene de la URL (dropdown).
+        # Si no viene nada (None), significa "Ver Todas".
+        filtro_sede_id = sede_filtro_id
+    else:
+        # Si no es admin, forzamos su sede asignada.
+        if not current_user.sede:
+            flash("Usuario sin sede asignada.", "warning")
+            return redirect(url_for("main.index"))
+        filtro_sede_id = current_user.sede.id
+
+    # 2. KPIs (Total Ventas, Ingresos, Cantidad)
+    query_reservas = db.select(func.sum(Reservation.total))
+    query_pagos = db.select(func.sum(Payment.monto))
+    query_count = db.select(func.count(Reservation.id))
+
+    if filtro_sede_id:
+        query_reservas = query_reservas.where(Reservation.sede_id == filtro_sede_id)
+        query_pagos = query_pagos.join(Reservation).where(
+            Reservation.sede_id == filtro_sede_id
+        )
+        query_count = query_count.where(Reservation.sede_id == filtro_sede_id)
+
+    total_ventas = db.session.scalar(query_reservas) or 0
+    total_ingresos = db.session.scalar(query_pagos) or 0
+    total_reservas = db.session.scalar(query_count) or 0
+    por_cobrar = total_ventas - total_ingresos
+
+    # 3. GRÁFICO BARRAS (Ventas x Mes)
+    anio_actual = datetime.now().year
+    query_chart = db.select(
+        func.extract("month", Reservation.fecha_celebracion).label("mes"),
+        func.sum(Reservation.total).label("total"),
+    ).where(func.extract("year", Reservation.fecha_celebracion) == anio_actual)
+
+    if filtro_sede_id:
+        query_chart = query_chart.where(Reservation.sede_id == filtro_sede_id)
+
+    resultados_chart = db.session.execute(query_chart.group_by("mes")).all()
+    datos_grafico_meses = [0] * 12
+    for mes, total in resultados_chart:
+        datos_grafico_meses[int(mes) - 1] = float(total)
+
+    # 4. LISTA DE DEUDORES
+    query_deudores = (
+        db.select(Reservation).order_by(Reservation.fecha_celebracion.desc()).limit(50)
+    )
+    if filtro_sede_id:
+        query_deudores = query_deudores.where(Reservation.sede_id == filtro_sede_id)
+
+    posibles_deudores = db.session.scalars(query_deudores).all()
+    lista_deudores = []
+
+    for r in posibles_deudores:
+        pagado = sum(p.monto for p in r.payments)
+        deuda = r.total - pagado
+        if deuda > 0:
+            lista_deudores.append(
+                {
+                    "codigo": r.codigo_reserva,
+                    "cliente": r.nombre_padres,
+                    "fecha": r.fecha_celebracion,
+                    "deuda": deuda,
+                }
+            )
+
+    lista_deudores = lista_deudores[:10]
+
+    # 5. PREPARAR LISTA DE SEDES (PARA EL DROPDOWN DE ADMIN)
+    all_sedes = []
+    if current_user.is_admin:
+        all_sedes = Sede.query.order_by(Sede.nombre).all()
+
+    return render_template(
+        "reportes/general.html",
+        title="Reportes - General",
+        total_ventas=total_ventas,
+        total_ingresos=total_ingresos,
+        por_cobrar=por_cobrar,
+        total_reservas=total_reservas,
+        datos_grafico=datos_grafico_meses,
+        anio_actual=anio_actual,
+        deudores=lista_deudores,
+        # Nuevas variables para el filtro
+        sedes=all_sedes,
+        sede_actual_id=filtro_sede_id,
+    )
+
+
+@bp.route("/reportes/ventas")
+@login_required
+@admin_required
+def reportes_ventas():
+    """Reporte Detallado de Ventas (Tabla)."""
+
+    # 1. Filtros (Fecha y Sede)
+    fecha_inicio = request.args.get(
+        "inicio", datetime.now().replace(day=1).strftime("%Y-%m-%d")
+    )
+    fecha_fin = request.args.get("fin", datetime.now().strftime("%Y-%m-%d"))
+    sede_filtro_id = request.args.get("sede_filtro", type=int)
+
+    filtro_sede_id = None
+    if current_user.is_admin:
+        filtro_sede_id = sede_filtro_id
+    else:
+        filtro_sede_id = current_user.sede.id if current_user.sede else None
+
+    # 2. Consulta
+    query = (
+        db.select(Reservation)
+        .filter(Reservation.fecha_celebracion.between(fecha_inicio, fecha_fin))
+        .order_by(Reservation.fecha_celebracion.desc())
+    )
+
+    if filtro_sede_id:
+        query = query.filter(Reservation.sede_id == filtro_sede_id)
+
+    ventas = db.session.scalars(query).all()
+    total_periodo = sum(r.total for r in ventas)
+
+    all_sedes = []
+    if current_user.is_admin:
+        all_sedes = Sede.query.order_by(Sede.nombre).all()
+
+    return render_template(
+        "reportes/ventas.html",
+        title="Reportes - Ventas",
+        ventas=ventas,
+        total_periodo=total_periodo,
+        fecha_inicio=fecha_inicio,
+        fecha_fin=fecha_fin,
+        sedes=all_sedes,
+        sede_actual_id=filtro_sede_id,
+    )
+
+
+@bp.route("/reportes/productos")
+@login_required
+@admin_required
+def reportes_productos():
+    """Reporte de Productos (Gráfico Pastel)."""
+
+    sede_filtro_id = request.args.get("sede_filtro", type=int)
+    filtro_sede_id = None
+
+    if current_user.is_admin:
+        filtro_sede_id = sede_filtro_id
+    else:
+        filtro_sede_id = current_user.sede.id if current_user.sede else None
+
+    # Consulta agrupada por Paquete
+    query = db.select(Reservation.paquete, func.count(Reservation.id)).group_by(
+        Reservation.paquete
+    )
+    if filtro_sede_id:
+        query = query.where(Reservation.sede_id == filtro_sede_id)
+
+    resultados = db.session.execute(query).all()
+
+    labels = []
+    data = []
+    for nombre, cantidad in resultados:
+        if nombre:
+            labels.append(nombre)
+            data.append(cantidad)
+
+    all_sedes = []
+    if current_user.is_admin:
+        all_sedes = Sede.query.order_by(Sede.nombre).all()
+
+    return render_template(
+        "reportes/productos.html",
+        title="Reportes - Productos",
+        labels_paquetes=labels,
+        data_paquetes=data,
+        sedes=all_sedes,
+        sede_actual_id=filtro_sede_id,
+        zip=zip,
+    )
+
+
+@bp.route("/reportes/exportar_excel")
+@login_required
+@admin_required
+def exportar_excel():
+    """Exportar a Excel (Respetando filtros)."""
+
+    # Leemos los mismos filtros que en "Ventas Detalladas"
+    fecha_inicio = request.args.get("inicio")
+    fecha_fin = request.args.get("fin")
+    sede_filtro_id = request.args.get("sede_filtro", type=int)
+
+    filtro_sede_id = None
+    if current_user.is_admin:
+        filtro_sede_id = sede_filtro_id
+    else:
+        filtro_sede_id = current_user.sede.id if current_user.sede else None
+
+    query = db.select(Reservation).order_by(Reservation.fecha_celebracion.desc())
+
+    if fecha_inicio and fecha_fin:
+        query = query.filter(
+            Reservation.fecha_celebracion.between(fecha_inicio, fecha_fin)
+        )
+
+    if filtro_sede_id:
+        query = query.where(Reservation.sede_id == filtro_sede_id)
+
+    reservas = db.session.scalars(query).all()
+
+    si = StringIO()
+    cw = csv.writer(si)
+    cw.writerow(
+        [
+            "Codigo",
+            "Fecha",
+            "Cliente",
+            "DNI",
+            "Telefono",
+            "Modalidad",
+            "Salon",
+            "Total",
+            "Pagado",
+            "Deuda",
+            "Estado",
+        ]
+    )
+
+    for r in reservas:
+        pagado = sum(p.monto for p in r.payments)
+        deuda = r.total - pagado
+        cw.writerow(
+            [
+                r.codigo_reserva,
+                r.fecha_celebracion.strftime("%d/%m/%Y"),
+                r.nombre_padres,
+                r.dni_padres,
+                r.telefono,
+                r.modalidad,
+                r.salon,
+                f"{r.total:.2f}",
+                f"{pagado:.2f}",
+                f"{deuda:.2f}",
+                r.estado,
+            ]
+        )
+
+    output = make_response(si.getvalue())
+    output.headers["Content-Disposition"] = (
+        f"attachment; filename=reporte_{datetime.now().strftime('%Y%m%d')}.csv"
+    )
+    output.headers["Content-type"] = "text/csv"
+    return output
